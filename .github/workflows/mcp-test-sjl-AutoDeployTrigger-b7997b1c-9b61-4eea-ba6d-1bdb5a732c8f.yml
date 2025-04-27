@@ -36,9 +36,6 @@ jobs:
         appSourcePath:    ${{ github.workspace }}
         imageToBuild:     mcpregistry.azurecr.io/mcp-test-sjl:${{ github.sha }}
 
-        # 레지스트리 인증
-        registryUrl:      mcpregistry.azurecr.io
-
         # 런타임 환경 변수
         environmentVariables: |
           client-id=${{ secrets.CLIENT_ID }}
