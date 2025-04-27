@@ -7,50 +7,42 @@ on:
 
 jobs:
   build-and-deploy:
-    name: Build → Push → Deploy to Container Apps
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
 
     steps:
-      # ──────────────────────────────────────────────
-      - name: ☑️  Checkout source
-        uses: actions/checkout@v4
+    - name: Checkout source
+      uses: actions/checkout@v4
 
-      # ──────────────────────────────────────────────
-      - name: 🔐 Azure login (Service Principal)
-        uses: azure/login@v1
-        with:
-          client-id:      ${{ secrets.MCPTESTSJL_AZURE_CLIENT_ID }}
-          tenant-id:      ${{ secrets.MCPTESTSJL_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.MCPTESTSJL_AZURE_SUBSCRIPTION_ID }}
+    - name: Azure login (Service Principal)
+      uses: azure/login@v1
+      with:
+        client-id:      ${{ secrets.MCPTESTSJL_AZURE_CLIENT_ID }}
+        tenant-id:      ${{ secrets.MCPTESTSJL_AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.MCPTESTSJL_AZURE_SUBSCRIPTION_ID }}
 
-      # ──────────────────────────────────────────────
-      - name: 🚀 Build, push, and deploy Container App
-        uses: azure/container-apps-deploy-action@v2
-        with:
-          # ── Azure target ──
-          resourceGroup:    Dalle2
-          containerAppName: mcp-test-sjl
-          targetPort:       80
-          ingress:          external
+    - name: Build, push, and deploy (Oryx auto-build)
+      uses: azure/container-apps-deploy-action@v2
+      with:
+        # Azure target
+        resourceGroup:    Dalle2
+        containerAppName: mcp-test-sjl
+        targetPort:       80
+        ingress:          external
 
-          # ── 소스 → 이미지 빌드 & 푸시 ──
-          appSourcePath:    ${{ github.workspace }}
-          dockerfilePath:   ./Dockerfile
-          imageToBuild:     mcpregistry.azurecr.io/mcp-test-sjl:${{ github.sha }}
-          registryUrl:      mcpregistry.azurecr.io
-          registryUsername: ${{ secrets.MCPTESTSJL_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.MCPTESTSJL_REGISTRY_PASSWORD }}
+        # 소스 경로만 주면 Oryx가 언어 감지해서 이미지 빌드
+        appSourcePath:    ${{ github.workspace }}
+        imageToBuild:     mcpregistry.azurecr.io/mcp-test-sjl:${{ github.sha }}
 
-          # (선택) 빌드 ARG
-          buildArguments: |
-            FOO=bar
-            BAR=baz
+        # 레지스트리 인증
+        registryUrl:      mcpregistry.azurecr.io
+        registryUsername: ${{ secrets.MCPTESTSJL_REGISTRY_USERNAME }}
+        registryPassword: ${{ secrets.MCPTESTSJL_REGISTRY_PASSWORD }}
 
-          # ── 런타임 환경 변수 ──
-          environmentVariables: |
-            client-id=${{ secrets.CLIENT_ID }}
-            client-secret=${{ secrets.CLIENT_SECRET }}
-            tenant-id=${{ secrets.TENANT_ID }}
+        # 런타임 환경 변수
+        environmentVariables: |
+          client-id=${{ secrets.CLIENT_ID }}
+          client-secret=${{ secrets.CLIENT_SECRET }}
+          tenant-id=${{ secrets.TENANT_ID }}
