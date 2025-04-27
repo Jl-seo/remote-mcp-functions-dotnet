@@ -1,55 +1,53 @@
 name: Trigger auto deployment for mcp-test-sjl
 
-# When this action will be executed
 on:
-  # Automatically trigger it when detected changes in repo
   push:
-    branches: 
-      [ main ]
-    paths:
-    - '**'
-    - '.github/workflows/mcp-test-sjl-AutoDeployTrigger-b7997b1c-9b61-4eea-ba6d-1bdb5a732c8f.yml'
-
-  # Allow manual trigger 
-  workflow_dispatch:      
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
+    name: Build → Push → Deploy to Container Apps
     runs-on: ubuntu-latest
-    permissions: 
-      id-token: write #This is required for requesting the OIDC JWT Token
-      contents: read #Required when GH token is used to authenticate with private repo
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
-      - name: Checkout to the branch
-        uses: actions/checkout@v2
+      # ──────────────────────────────────────────────
+      - name: ☑️  Checkout source
+        uses: actions/checkout@v4
 
-      - name: Azure Login
+      # ──────────────────────────────────────────────
+      - name: 🔐 Azure login (OIDC, Service Principal)
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.MCPTESTSJL_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.MCPTESTSJL_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.MCPTESTSJL_AZURE_SUBSCRIPTION_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Build and push container image to registry
+      # ──────────────────────────────────────────────
+      - name: 🚀 Build, push, and deploy Container App
         uses: azure/container-apps-deploy-action@v2
         with:
-          azureCredentials: ${{ secrets.AZURE_CREDENTIALS }}   
-          resourceGroup:    Dalle2
-          containerAppName: mcp-test-sjl
-          targetPort:       80          
-          dockerfilePath:   ./Dockerfile    
+          # ── Azure target ──
+          resourceGroup:    Dalle2               # 리소스 그룹
+          containerAppName: mcp-test-sjl         # 컨테이너 앱 이름
+          targetPort:       80                   # Ingress TargetPort
+          ingress:          external
+
+          # ── 소스 → 이미지 빌드 & 레지스트리 푸시 ──
+          appSourcePath:    ${{ github.workspace }}
+          dockerfilePath:   ./Dockerfile
           imageToBuild:     mcpregistry.azurecr.io/mcp-test-sjl:${{ github.sha }}
           registryUrl:      mcpregistry.azurecr.io
           registryUsername: ${{ secrets.MCPTESTSJL_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.MCPTESTSJL_REGISTRY_PASSWORD }}
 
-        # (선택) 빌드 ARG
+          # (선택) 빌드 ARG
           buildArguments: |
             FOO=bar
             BAR=baz
 
-        # 런타임 환경 변수 (Graph 토큰에 필요)
+          # ── 런타임 환경 변수 ──
           environmentVariables: |
             client-id=${{ secrets.CLIENT_ID }}
             client-secret=${{ secrets.CLIENT_SECRET }}
