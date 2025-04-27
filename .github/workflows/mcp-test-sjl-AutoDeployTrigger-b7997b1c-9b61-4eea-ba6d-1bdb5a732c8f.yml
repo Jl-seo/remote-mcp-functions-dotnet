@@ -38,8 +38,6 @@ jobs:
 
         # 레지스트리 인증
         registryUrl:      mcpregistry.azurecr.io
-        registryUsername: ${{ secrets.MCPTESTSJL_REGISTRY_USERNAME }}
-        registryPassword: ${{ secrets.MCPTESTSJL_REGISTRY_PASSWORD }}
 
         # 런타임 환경 변수
         environmentVariables: |
